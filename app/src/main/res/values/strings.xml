@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Combat Club</string>
+    <string name="title_activity_bluetooth_reciever_example">BluetoothRecieverExample</string>
+    <string name="title_activity_game_session">GameSession</string>
+</resources>
