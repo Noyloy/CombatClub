@@ -187,6 +187,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
     }
 
     private void animateCameraToCurrentPosition(){
+        googleMap.stopAnimation();
         googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(mCurrentCamera), 50, null);
     }
 
@@ -282,7 +283,17 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
             @Override
             public void run() {
                 MarkerAnimation.animateMarkerToGB(mMarker, new LatLng(location.getLatitude(), location.getLongitude()), new LatLngInterpolator.Spherical());
-            }
+                mCurrentCamera =
+                        new CameraPosition.Builder().target(new LatLng(location.getLatitude(), location.getLongitude()))
+                                .zoom(mCurrentCamera.zoom)
+                                .bearing(mCurrentCamera.bearing)
+                                .tilt(mCurrentCamera.tilt)
+                                .build();
+                if (mCameraToggleButton.isChecked()) {
+
+                            animateCameraToCurrentPosition();
+                        }
+                }
         });
 
 
