@@ -35,6 +35,7 @@ public class GameSession extends Activity
 implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, BearingListener {
     public static Typeface typeface;
     private SessionIDS m_cred;
+    private int mHp = 100;
     CameraPosition mCurrentCamera =
             new CameraPosition.Builder().target(new LatLng(32.215112, 34.993070))
                     .zoom(18.5f)
@@ -145,6 +146,9 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
             else if ( hp_val <= 66 && hp_val > 33 ) mHpImageView.setImageResource(R.drawable.ic_hp_2_3);
             else if ( hp_val <= 33 && hp_val > 0) mHpImageView.setImageResource(R.drawable.ic_hp_1_3);
             else if ( hp_val <= 0 ) mHpImageView.setImageResource(R.drawable.ic_hp_0_3);
+            mHp = hp_val;
+            // send my new hp to server.
+            updatePlayerStatus();
         }catch (Exception e){}
     }
 
@@ -161,11 +165,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(final LatLng latLng) {
-
-                RequestParams params = new RequestParams();
-                params.add("soldierID",m_cred.playerID+"");
-                params.add("gameID",m_cred.gameID+"");
-                params.add("teamID",m_cred.teamID+"");
+                RequestParams params = makeBasicRequest();
                 params.add("lat",latLng.latitude+"");
                 params.add("lon",latLng.longitude+"");
                 params.add("locName", "");
@@ -204,10 +204,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
             public void onInfoWindowClick(final Marker marker) {
                 final EnemyMarker em = getEnemy(marker);
                 if (em!=null) {
-                    RequestParams params = new RequestParams();
-                    params.add("soldierID",m_cred.playerID+"");
-                    params.add("gameID",m_cred.gameID+"");
-                    params.add("teamID", m_cred.teamID + "");
+                    RequestParams params = makeBasicRequest();
                     params.add("enemyID", em.id + "");
 
                     CombatClubRestClient.post("/UnmarkEnemy", params, new AsyncHttpResponseHandler() {
@@ -293,12 +290,49 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         }
     }
 
-    private EnemyMarker getEnemy(Marker m){
+    private RequestParams makeBasicRequest(){
+        RequestParams params = new RequestParams();
+        params.add("soldierID",m_cred.playerID+"");
+        params.add("gameID",m_cred.gameID+"");
+        params.add("teamID", m_cred.teamID + "");
+        return params;
+    }
+
+    public EnemyMarker getEnemy(Marker m){
         for(EnemyMarker em : mEnemyMarkers){
             if (em.marker.equals(m)) return em;
         }
         return null;
     }
+
+    private void updatePlayerStatus(){
+        RequestParams params = makeBasicRequest();
+        params.add("hp",mHp+"");
+        params.add("lat",mLHelper.currentLocation.getLatitude()+"");
+        params.add("lon",mLHelper.currentLocation.getLongitude()+"");
+        params.add("locName","");
+        CombatClubRestClient.post("/UpdateSoldier", params, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                try {
+                    String jsonStr = new String(responseBody, "UTF-8");
+                    jsonStr = CombatClubRestClient.interprateResponse(jsonStr);
+                    JSONObject res = new JSONObject(jsonStr);
+                    if (res.getInt("Code") < 0) {
+                        Toast.makeText(GameSession.this, res.getString("Message"), Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                } catch (Exception ex) {
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+            }
+        });
+    }
+
     private void registerForSessionListeners(){
         mCameraToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -353,7 +387,15 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         if (bt_res.equals(mBTHelper.NOT_ENABLED)) Toast.makeText(GameSession.this,"Try to Enable Your Bluetooth first",Toast.LENGTH_SHORT).show();
         else if (bt_res.equals(mBTHelper.NO_SUPPORT)) Toast.makeText(GameSession.this,"Your Phone Doesn't support Bluetooth",Toast.LENGTH_SHORT).show();
         else if (bt_res.equals(mBTHelper.DEVICE_NOT_FOUND)) Toast.makeText(GameSession.this,"Device Not Found",Toast.LENGTH_SHORT).show();
-        else mBTHelper.openBluetoothCommunication();
+        else {
+            String res = mBTHelper.openBluetoothCommunication();
+            if (res.equals(mBTHelper.COMM_FAIL_RESULT)){
+                Toast.makeText(GameSession.this,"Can't connect to Combat system data stream",Toast.LENGTH_LONG).show();
+            }
+            else if (res.equals(mBTHelper.SUCCESS_RESULT)){
+                Toast.makeText(GameSession.this,"Connected to Combat system",Toast.LENGTH_SHORT).show();
+            }
+        }
 
         // register for bearing changes
         mComHelper = new CompassHelper(GameSession.this,mLHelper);
@@ -368,10 +410,11 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
 
     @Override
     public void onNewLocation(final Location location) {
+        final LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                MarkerAnimation.animateMarkerToGB(mMarker, new LatLng(location.getLatitude(), location.getLongitude()), new LatLngInterpolator.Spherical());
+                MarkerAnimation.animateMarkerToGB(mMarker, latLng, new LatLngInterpolator.Spherical());
                 mCurrentCamera =
                         new CameraPosition.Builder().target(new LatLng(location.getLatitude(), location.getLongitude()))
                                 .zoom(mCurrentCamera.zoom)
@@ -379,18 +422,13 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
                                 .tilt(mCurrentCamera.tilt)
                                 .build();
                 if (mCameraToggleButton.isChecked()) {
-
-                            animateCameraToCurrentPosition();
-                        }
+                    animateCameraToCurrentPosition();
                 }
+            }
         });
 
-
-
-        // TODO: send my new location to server.
-        // and stuff
-
-
+        // send my new location to server.
+        updatePlayerStatus();
     }
 
     @Override

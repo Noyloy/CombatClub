@@ -77,21 +77,22 @@ public class BluetoothHelper {
         }catch (IOException ex){
             return COMM_FAIL_RESULT;
         }
-
+        mBluetoothAdapter.cancelDiscovery();
+        try {
+            mmSocket.connect();
+            mmOutputStream = mmSocket.getOutputStream();
+            mmInputStream = mmSocket.getInputStream();
+        } catch (IOException connectException) {
+            try {
+                mmSocket.close();
+                return COMM_FAIL_RESULT;
+            } catch (IOException closeException) {
+                return COMM_FAIL_RESULT;
+            }
+        }
         new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    mBluetoothAdapter.cancelDiscovery();
-                    try {
-                        mmSocket.connect();
-                        mmOutputStream = mmSocket.getOutputStream();
-                        mmInputStream = mmSocket.getInputStream();
-                    } catch (IOException connectException) {
-                        try {
-                            mmSocket.close();
-                        } catch (IOException closeException) { }
-                        return;
-                    }
+            @Override
+            public void run() {
                     beginListenForData();
                 }
             }).start();
