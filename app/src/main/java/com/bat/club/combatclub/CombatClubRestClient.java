@@ -21,8 +21,7 @@ package com.bat.club.combatclub;
 
 
 public class CombatClubRestClient {
-    //private static final String BASE_URL = "http://212.29.201.146/newsims/ESacre/Content/AppService.asmx";
-    private static final String BASE_URL = "pathtoservice.asmx";
+    private static final String BASE_URL = "http://combatclubserver.azurewebsites.net/CombatClub/CombatClubService.asmx";
 
     private static AsyncHttpClient client = new AsyncHttpClient();
     private static SyncHttpClient syncClient = new SyncHttpClient();

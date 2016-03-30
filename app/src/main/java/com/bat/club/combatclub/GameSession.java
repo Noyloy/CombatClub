@@ -1,6 +1,7 @@
 package com.bat.club.combatclub;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.location.Location;
 import android.os.Bundle;
@@ -21,13 +22,19 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
+
+import org.json.JSONObject;
 
 import java.util.ArrayList;
+
+import cz.msebera.android.httpclient.Header;
 
 public class GameSession extends Activity
 implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, BearingListener {
     public static Typeface typeface;
-
+    private SessionIDS m_cred;
     CameraPosition mCurrentCamera =
             new CameraPosition.Builder().target(new LatLng(32.215112, 34.993070))
                     .zoom(18.5f)
@@ -42,7 +49,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
     GoogleMap googleMap;
     Marker mMarker;
     ArrayList<Marker> mTeamMarkers = new ArrayList<>();
-    ArrayList<Marker> mEnemyMarkers = new ArrayList<>();
+    ArrayList<EnemyMarker> mEnemyMarkers = new ArrayList<>();
     // location helper class
     LocationHelper mLHelper;
     // bluetooth helper class
@@ -64,6 +71,8 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         typeface = Typeface.createFromAsset(getAssets(), "fonts/DS-DIGI.TTF");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game_session);
+        // load credentials
+        loadCred();
         // hide android ui
         mDecorView = getWindow().getDecorView();
         hideSystemUI();
@@ -151,20 +160,79 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
 
         googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
-            public void onMapClick(LatLng latLng) {
-                mEnemyMarkers.add(googleMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_enemy))
-                        .title("Enemy")
-                        .snippet("Tap to remove")
-                        .position(latLng)));
+            public void onMapClick(final LatLng latLng) {
+
+                RequestParams params = new RequestParams();
+                params.add("soldierID",m_cred.playerID+"");
+                params.add("gameID",m_cred.gameID+"");
+                params.add("teamID",m_cred.teamID+"");
+                params.add("lat",latLng.latitude+"");
+                params.add("lon",latLng.longitude+"");
+                params.add("locName", "");
+
+                CombatClubRestClient.post("/MarkEnemy", params, new AsyncHttpResponseHandler() {
+                    @Override
+                    public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                        try {
+                            String jsonStr = new String(responseBody, "UTF-8");
+                            jsonStr = CombatClubRestClient.interprateResponse(jsonStr);
+                            JSONObject res = new JSONObject(jsonStr);
+                            if (res.getInt("Code")<0) {
+                                Toast.makeText(GameSession.this,res.getString("Message"),Toast.LENGTH_LONG).show();
+                                return;
+                            }
+                            int enemyID = res.getInt("Value");
+                            mEnemyMarkers.add(new EnemyMarker(enemyID, googleMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_enemy))
+                                    .title("Enemy")
+                                    .snippet("Tap to remove")
+                                    .position(latLng))));
+                        }
+                        catch (Exception ex){}
+                    }
+
+                    @Override
+                    public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+                    }
+                });
+
             }
         });
 
         googleMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
-            public void onInfoWindowClick(Marker marker) {
-                if (mEnemyMarkers.contains(marker)) {
-                    marker.remove();
-                    mEnemyMarkers.remove(marker);
+            public void onInfoWindowClick(final Marker marker) {
+                final EnemyMarker em = getEnemy(marker);
+                if (em!=null) {
+                    RequestParams params = new RequestParams();
+                    params.add("soldierID",m_cred.playerID+"");
+                    params.add("gameID",m_cred.gameID+"");
+                    params.add("teamID", m_cred.teamID + "");
+                    params.add("enemyID", em.id + "");
+
+                    CombatClubRestClient.post("/UnmarkEnemy", params, new AsyncHttpResponseHandler() {
+                        @Override
+                        public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                            try {
+                                String jsonStr = new String(responseBody, "UTF-8");
+                                jsonStr = CombatClubRestClient.interprateResponse(jsonStr);
+                                JSONObject res = new JSONObject(jsonStr);
+                                if (res.getInt("Code") < 0){
+                                    Toast.makeText(GameSession.this,res.getString("Message"),Toast.LENGTH_LONG).show();
+                                    return;
+                                }
+                                marker.remove();
+                                mEnemyMarkers.remove(em);
+                            } catch (Exception ex) {
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+                        }
+                    });
+
                 }
             }
         });
@@ -210,6 +278,27 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         mReviveBtn = (Button) findViewById(R.id.revive_btn);
     }
 
+    private void loadCred(){
+        try {
+            Intent intent = getIntent();
+            int playerID = intent.getIntExtra(SessionIDS.KEYS[0], -1);
+                if (playerID==-1) throw new Exception();
+            String playerName = intent.getStringExtra(SessionIDS.KEYS[1]);
+            int gameID = intent.getIntExtra(SessionIDS.KEYS[2], -1);
+            int teamID = intent.getIntExtra(SessionIDS.KEYS[3], -1);
+            m_cred = new SessionIDS(playerID, playerName, gameID, teamID);
+        }
+        catch (Exception e){
+            m_cred = new SessionIDS(1,"Noyloy", 0,0);
+        }
+    }
+
+    private EnemyMarker getEnemy(Marker m){
+        for(EnemyMarker em : mEnemyMarkers){
+            if (em.marker.equals(m)) return em;
+        }
+        return null;
+    }
     private void registerForSessionListeners(){
         mCameraToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
