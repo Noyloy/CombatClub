@@ -25,6 +25,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -34,8 +35,10 @@ import cz.msebera.android.httpclient.Header;
 public class GameSession extends Activity
 implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, BearingListener {
     public static Typeface typeface;
+
     private SessionIDS m_cred;
     private int mHp = 100;
+
     CameraPosition mCurrentCamera =
             new CameraPosition.Builder().target(new LatLng(32.215112, 34.993070))
                     .zoom(18.5f)
@@ -331,6 +334,47 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
 
             }
         });
+    }
+
+    private void refreshGameStatus(){
+        updateEnemyMarkers();
+    }
+
+    private void updateEnemyMarkers(){
+        RequestParams params = makeBasicRequest();
+        CombatClubRestClient.post("/GetTeamEnemyMarkStatus", params, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                try {
+                    clearEnemyMarkers();
+                    String jsonStr = new String(responseBody, "UTF-8");
+                    jsonStr = CombatClubRestClient.interprateResponse(jsonStr);
+                    JSONArray resArr = new JSONArray(jsonStr);
+                    for (int i = 0; i < resArr.length(); i++) {
+                        JSONObject resObj = resArr.getJSONObject(i);
+                        JSONObject resLocation = resObj.getJSONObject("Location");
+
+                        LatLng eLatLng = new LatLng(resLocation.getDouble("Lat"), resLocation.getDouble("Long"));
+                        int enemyID = resObj.getInt("ID");
+
+                        mEnemyMarkers.add(new EnemyMarker(enemyID, googleMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_enemy))
+                                .title("Enemy")
+                                .snippet("Tap to remove")
+                                .position(eLatLng))));
+                    }
+                } catch (Exception ex) {
+                }
+            }
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+            }
+        });
+    }
+
+    private void clearEnemyMarkers(){
+        for (EnemyMarker m : mEnemyMarkers) m.marker.remove();
+        mEnemyMarkers.clear();
     }
 
     private void registerForSessionListeners(){
