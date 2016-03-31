@@ -115,10 +115,10 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
             public void run() {
                 switch (dataParsed[0]) {
                     case "a":
-                        handleAmmo(dataParsed[0]);
+                        handleAmmo(dataParsed[1]);
                         break;
                     case "h":
-                        handleHp(dataParsed[0]);
+                        handleHp(dataParsed[1]);
                         break;
                     case "r":
                         Toast.makeText(GameSession.this, "Reloading", Toast.LENGTH_SHORT).show();
@@ -132,7 +132,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         mAmmoTextView.setText(ammo_data);
         String[] ammoStatus = ammo_data.split("/");
         try{
-            double ratio = Integer.parseInt(ammoStatus[0])/Integer.parseInt(ammoStatus[1]);
+            double ratio = (double)(Integer.parseInt(ammoStatus[0]))/Integer.parseInt(ammoStatus[1]);
             if ( ratio <= 1 && ratio > 2/3 ) mAmmoImageView.setImageResource(R.drawable.ic_ammo_3_3);
             else if ( ratio <= 2/3 && ratio > 1/3 ) mAmmoImageView.setImageResource(R.drawable.ic_ammo_2_3);
             else if ( ratio <= 1/3 && ratio > 0) mAmmoImageView.setImageResource(R.drawable.ic_ammo_1_3);
@@ -411,7 +411,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
                     }).start();
                 }
                 else {
-                    //mBTHelper.sendData('*');
+                    mBTHelper.sendData('*');
                     mReviveBtn.setBackgroundResource(R.drawable.ic_dif_off);
                     firstReviveClick=true;
                     Toast.makeText(GameSession.this,"You are now revived",Toast.LENGTH_LONG).show();
@@ -444,6 +444,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         // register for bearing changes
         mComHelper = new CompassHelper(GameSession.this,mLHelper);
         mComHelper.registerOnBearingListener(this);
+
     }
 
     private void unregisterSessionListeners(){

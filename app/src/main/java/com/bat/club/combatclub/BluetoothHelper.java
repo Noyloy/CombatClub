@@ -126,7 +126,7 @@ public class BluetoothHelper {
                                 {
                                     byte[] encodedBytes = new byte[readBufferPosition];
                                     System.arraycopy(readBuffer, 0, encodedBytes, 0, encodedBytes.length);
-                                    final String data = new String(encodedBytes, "US-ASCII");
+                                    final String data = new String(encodedBytes, "US-ASCII").trim();
                                     readBufferPosition = 0;
 
                                      for (BluetoothDataListener listener : mListeners){
