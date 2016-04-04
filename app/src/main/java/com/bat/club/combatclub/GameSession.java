@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Typeface;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -52,8 +53,8 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
     // google map object
     GoogleMap googleMap;
     Marker mMarker;
-    ArrayList<Marker> mTeamMarkers = new ArrayList<>();
-    ArrayList<EnemyMarker> mEnemyMarkers = new ArrayList<>();
+    ArrayList<MyMarker> mTeamMarkers = new ArrayList<>();
+    ArrayList<MyMarker> mEnemyMarkers = new ArrayList<>();
     // location helper class
     LocationHelper mLHelper;
     // bluetooth helper class
@@ -84,6 +85,16 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         loadGUI();
         // load google map object
         ((MapFragment) getFragmentManager().findFragmentById(R.id.mapView)).getMapAsync(this);
+
+        final Handler h = new Handler();
+        final int delay = 5000; //milliseconds
+
+        h.postDelayed(new Runnable() {
+            public void run() {
+                refreshGameStatus();
+                h.postDelayed(this, delay);
+            }
+        }, 0);
     }
 
     @Override
@@ -186,7 +197,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
                                 return;
                             }
                             int enemyID = res.getInt("Value");
-                            mEnemyMarkers.add(new EnemyMarker(enemyID, googleMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_enemy))
+                            mEnemyMarkers.add(new MyMarker(enemyID, googleMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_enemy))
                                     .title("Enemy")
                                     .snippet("Tap to remove")
                                     .position(latLng))));
@@ -206,7 +217,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         googleMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(final Marker marker) {
-                final EnemyMarker em = getEnemy(marker);
+                final MyMarker em = getEnemy(marker);
                 if (em!=null) {
                     RequestParams params = makeBasicRequest();
                     params.add("enemyID", em.id + "");
@@ -302,8 +313,8 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         return params;
     }
 
-    public EnemyMarker getEnemy(Marker m){
-        for(EnemyMarker em : mEnemyMarkers){
+    public MyMarker getEnemy(Marker m){
+        for(MyMarker em : mEnemyMarkers){
             if (em.marker.equals(m)) return em;
         }
         return null;
@@ -339,6 +350,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
 
     private void refreshGameStatus(){
         updateEnemyMarkers();
+        updateTeamMarkers();
     }
 
     private void updateEnemyMarkers(){
@@ -358,7 +370,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
                         LatLng eLatLng = new LatLng(resLocation.getDouble("Lat"), resLocation.getDouble("Long"));
                         int enemyID = resObj.getInt("ID");
 
-                        mEnemyMarkers.add(new EnemyMarker(enemyID, googleMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_enemy))
+                        mEnemyMarkers.add(new MyMarker(enemyID, googleMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_enemy))
                                 .title("Enemy")
                                 .snippet("Tap to remove")
                                 .position(eLatLng))));
@@ -374,8 +386,71 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         });
     }
 
+    private void updateTeamMarkers(){
+        RequestParams params = makeBasicRequest();
+        CombatClubRestClient.post("/GetTeamStatus", params, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                try {
+                    String jsonStr = new String(responseBody, "UTF-8");
+                    jsonStr = CombatClubRestClient.interprateResponse(jsonStr);
+                    JSONArray resArr = new JSONArray(jsonStr);
+                    for (int i = 0; i < resArr.length(); i++) {
+                        JSONObject resObj = resArr.getJSONObject(i);
+                        JSONObject resLocation = resObj.getJSONObject("location");
+                        JSONObject resHealth = resObj.getJSONObject("health");
+
+                        LatLng tLatLng = new LatLng(resLocation.getDouble("Lat"), resLocation.getDouble("Long"));
+                        String percentage = resHealth.getString("Percentage");
+                        int teamID = resObj.getInt("id");
+                        String name = resObj.getString("name");
+                        addOrAnimateMarker(new MyMarker(teamID, googleMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_teammate))
+                                .title(name)
+                                .snippet(percentage + "%")
+                                .position(tLatLng)
+                                .visible(false))));
+                    }
+                } catch (Exception ex) {
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+            }
+        });
+    }
+
+    private void addOrAnimateMarker(MyMarker marker){
+        if (marker.id==m_cred.playerID){
+            marker.marker.remove();
+            return; // I know my location
+        }
+
+        int markerPos = getTeamMarkerPos(marker);
+        if (markerPos!=-1){
+            // update
+            Marker m = mTeamMarkers.get(markerPos).marker;
+            m.setTitle(marker.marker.getTitle());
+            m.setSnippet(marker.marker.getSnippet());
+
+            // animate
+            MarkerAnimation.animateMarkerToGB(mTeamMarkers.get(markerPos).marker, marker.marker.getPosition(), new LatLngInterpolator.Spherical());
+        }else{
+            // add and show
+            marker.marker.setVisible(true);
+            mTeamMarkers.add(marker);
+        }
+    }
+
+    private int getTeamMarkerPos(MyMarker marker){
+        for(int i=0;i<mTeamMarkers.size();i++)
+            if (mTeamMarkers.get(i).id == marker.id) return i;
+        return -1;
+    }
+
     private void clearEnemyMarkers(){
-        for (EnemyMarker m : mEnemyMarkers) m.marker.remove();
+        for (MyMarker m : mEnemyMarkers) m.marker.remove();
         mEnemyMarkers.clear();
     }
 
@@ -462,16 +537,14 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         params.add("teamID", m_cred.teamID + "");
         CombatClubRestClient.post("/LeaveTeam", params, new AsyncHttpResponseHandler() {
             @Override
-            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {}
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+            }
+
             @Override
-            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {}
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+            }
         });
 
-    }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
     }
 
     @Override

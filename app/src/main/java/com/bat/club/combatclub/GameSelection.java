@@ -75,14 +75,14 @@ public class GameSelection extends AppCompatActivity {
         super.onStart();
 
         final Handler h = new Handler();
-        final int delay = 5000; // 5 sec
+        final int delay = 5000; //milliseconds
 
         h.postDelayed(new Runnable() {
             public void run() {
                 loadGames();
                 h.postDelayed(this, delay);
             }
-        }, delay);
+        }, 0);
 
     }
 
