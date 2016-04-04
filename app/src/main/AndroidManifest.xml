@@ -8,6 +8,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- To auto-complete the email text field in the login form with the user's emails -->
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    <uses-permission android:name="android.permission.READ_PROFILE" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -17,25 +22,32 @@
         <activity
             android:name=".BluetoothReceiverExample"
             android:label="@string/title_activity_bluetooth_reciever_example"
-            android:theme="@style/AppTheme.NoActionBar">
-        </activity>
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".GameSession"
+            android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_game_session"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen"
             android:screenOrientation="landscape"
-            android:configChanges="orientation|keyboardHidden|screenSize" >
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen"></activity>
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyDFR_kkMsxa17XoNyy-w4QeCiRtNgh7BJU" />
+
+        <activity
+            android:name=".LoginActivity"
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDFR_kkMsxa17XoNyy-w4QeCiRtNgh7BJU"/>
-
+        <activity
+            android:name=".GameSelection"
+            android:label="@string/title_activity_game_selection"
+            android:screenOrientation="landscape"
+            android:theme="@style/AppTheme.NoActionBar" />
     </application>
 
 </manifest>

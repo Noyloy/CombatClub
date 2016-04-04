@@ -98,6 +98,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
     protected void onStop() {
         super.onStop();
         unregisterSessionListeners();
+        leaveGame();
     }
 
     @Override
@@ -132,11 +133,11 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         mAmmoTextView.setText(ammo_data);
         String[] ammoStatus = ammo_data.split("/");
         try{
-            double ratio = (double)(Integer.parseInt(ammoStatus[0]))/Integer.parseInt(ammoStatus[1]);
-            if ( ratio <= 1 && ratio > 2/3 ) mAmmoImageView.setImageResource(R.drawable.ic_ammo_3_3);
-            else if ( ratio <= 2/3 && ratio > 1/3 ) mAmmoImageView.setImageResource(R.drawable.ic_ammo_2_3);
-            else if ( ratio <= 1/3 && ratio > 0) mAmmoImageView.setImageResource(R.drawable.ic_ammo_1_3);
-            else if (ratio <= 0) mAmmoImageView.setImageResource(R.drawable.ic_ammo_0_3);
+            double ratio = Double.parseDouble(ammoStatus[0])/Double.parseDouble(ammoStatus[1]);
+            if ( ratio <= 1f && ratio > 2f/3f ) mAmmoImageView.setImageResource(R.drawable.ic_ammo_3_3);
+            else if ( ratio <= 2f/3f && ratio > 1f/3f ) mAmmoImageView.setImageResource(R.drawable.ic_ammo_2_3);
+            else if ( ratio <= 1f/3f && ratio > 0f) mAmmoImageView.setImageResource(R.drawable.ic_ammo_1_3);
+            else if (ratio <= 0f) mAmmoImageView.setImageResource(R.drawable.ic_ammo_0_3);
         } catch (Exception e) {
         }
     }
@@ -365,6 +366,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
                 } catch (Exception ex) {
                 }
             }
+
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
 
@@ -451,6 +453,25 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         mLHelper.unRegisterOnNewLocationListener(this);
         mBTHelper.unregisterOnNewBluetoothDataListener(this);
         mComHelper.unRegisterOnBearingListener(this);
+    }
+
+    private void leaveGame(){
+        RequestParams params = new RequestParams();
+        params.add("soldierID", m_cred.playerID + "");
+        params.add("gameID", m_cred.gameID + "");
+        params.add("teamID", m_cred.teamID + "");
+        CombatClubRestClient.post("/LeaveTeam", params, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {}
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {}
+        });
+
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
     }
 
     @Override

@@ -2,4 +2,23 @@
     <string name="app_name">Combat Club</string>
     <string name="title_activity_bluetooth_reciever_example">BluetoothRecieverExample</string>
     <string name="title_activity_game_session">GameSession</string>
+    <string name="title_activity_login">Sign in</string>
+
+    <!-- Strings related to login -->
+    <string name="prompt_username">Soldier Name</string>
+    <string name="prompt_password">Password</string>
+    <string name="action_sign_in_short">Sign In</string>
+    <string name="remember_me">Remember Me</string>
+    <string name="action_sign_in">Sign In</string>
+
+    <string name="title_activity_game_selection">Game Selection</string>
+
+    <string name="wait">Please Wait&#8230;</string>
+    <string name="empty">Empty Field</string>
+    <string name="error_incorrect_password">Incorrect Username or Password</string>
+    <string name="error">Error</string>
+
+    <string name="create_new_game">CREATE NEW GAME</string>
+    <string name="game_name">Enter Game Name</string>
+    <string name="title_activity_main">MainActivity</string>
 </resources>
