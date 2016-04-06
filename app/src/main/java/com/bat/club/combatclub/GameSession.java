@@ -294,6 +294,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         try {
             Intent intent = getIntent();
             int playerID = intent.getIntExtra(SessionIDS.KEYS[0], -1);
+            Toast.makeText(GameSession.this,""+playerID,Toast.LENGTH_LONG).show();
                 if (playerID==-1) throw new Exception();
             String playerName = intent.getStringExtra(SessionIDS.KEYS[1]);
             int gameID = intent.getIntExtra(SessionIDS.KEYS[2], -1);

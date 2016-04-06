@@ -47,16 +47,16 @@ public class LoginActivity extends AppCompatActivity {
 
         //if user is saved previously
         // reading username, password and id from SharedPreferences
-        String tmpUsername = mPrefs.getString("Username", null);
-        String tmpPassword = mPrefs.getString("Password", null);
-        String tmpUserID = mPrefs.getString("UserID", null);
+        String tmpUsername = mPrefs.getString(SessionIDS.KEYS[1], null);
+        int tmpUserID = mPrefs.getInt(SessionIDS.KEYS[0], -1);
+
+// 353937 C0886322-27B8-4F8A-80A2-04D3F6D77284 - copun. תשלום שבוצע מראש
 
         // user was saved - start activity
-        if (tmpPassword!=null && tmpUserID!=null && tmpUsername!=null){
+        if (tmpUserID!=-1 && tmpUsername!=null){
             Intent intent = new Intent(getApplicationContext(),GameSelection.class);
-            intent.putExtra("Username",tmpUsername);
-            intent.putExtra("Password",tmpPassword);
-            intent.putExtra("UserID",tmpUserID);
+            intent.putExtra(SessionIDS.KEYS[0], tmpUserID);
+            intent.putExtra(SessionIDS.KEYS[1], tmpUsername);
             startActivity(intent);
             finish();
             return;
@@ -145,19 +145,18 @@ public class LoginActivity extends AppCompatActivity {
 
                         // connection successful - result is the id
                         if (!res.equals("-1")) {
+                            int res_i = Integer.parseInt(res);
                             // need to save user
                             if (mSaveMeView.isChecked()) {
                                 SharedPreferences.Editor edit = mPrefs.edit();
-                                edit.putString("Username", username);
-                                edit.putString("Password", password);
-                                edit.putString("UserID", res);
+                                edit.putInt(SessionIDS.KEYS[0], res_i);
+                                edit.putString(SessionIDS.KEYS[1], username);
                                 edit.apply();
                             }
 
                             Intent intent = new Intent(getApplicationContext(), GameSelection.class);
-                            intent.putExtra("Username", username);
-                            intent.putExtra("Password", password);
-                            intent.putExtra("UserID", res);
+                            intent.putExtra(SessionIDS.KEYS[0], res_i);
+                            intent.putExtra(SessionIDS.KEYS[1], username);
                             startActivity(intent);
                             finish();
                         }
