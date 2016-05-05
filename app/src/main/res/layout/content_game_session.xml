@@ -17,25 +17,68 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
         <LinearLayout
-            android:clickable="true"
-            android:id="@+id/ammo_panel"
-            android:layout_width="200dp"
+        android:clickable="true"
+        android:id="@+id/ammo_panel"
+        android:layout_width="200dp"
+        android:layout_height="70dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentTop="true"
+        style="@style/MyRightPanelStyle">
+        <com.bat.club.combatclub.TextViewWithFont
+            android:id="@+id/m_ammo_tv"
+            android:layout_weight="3"
+            style="@style/MyTextStyle"
+            android:text="30/30"/>
+        <ImageView
+            android:id="@+id/m_ammo_iv"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="#b4386fdc"
+            android:src="@drawable/ic_ammo_3_3"/>
+    </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/army_status_panel"
+            android:layout_width="100dp"
             android:layout_height="70dp"
-            android:layout_alignParentEnd="true"
-            android:layout_alignParentTop="true"
-            style="@style/MyRightPanelStyle">
+            style="@style/MyRightPanelStyleBottom"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true">
             <com.bat.club.combatclub.TextViewWithFont
-                android:id="@+id/m_ammo_tv"
+                android:id="@+id/m_army_tv"
                 android:layout_weight="3"
                 style="@style/MyTextStyle"
-                android:text="30/30"/>
+                android:text="10"/>
             <ImageView
-                android:id="@+id/m_ammo_iv"
-                android:layout_weight="1"
+                android:id="@+id/m_army_iv"
+                android:layout_weight="2"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:background="#b4386fdc"
-                android:src="@drawable/ic_ammo_3_3"/>
+                android:src="@drawable/ic_army"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/gorrila_status_panel"
+            android:layout_width="100dp"
+            android:layout_height="70dp"
+            style="@style/MyLeftPanelStyleBottom"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentStart="true">
+
+            <ImageView
+                android:id="@+id/m_gory_iv"
+                android:layout_weight="2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="#b4386fdc"
+                android:src="@drawable/ic_gorilla"/>
+            <com.bat.club.combatclub.TextViewWithFont
+            android:id="@+id/m_gori_tv"
+            android:layout_weight="3"
+            style="@style/MyTextStyle"
+            android:text="10"/>
         </LinearLayout>
 
         <ToggleButton
