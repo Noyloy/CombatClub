@@ -20,5 +20,6 @@
 
     <string name="create_new_game">CREATE NEW GAME</string>
     <string name="game_name">Enter Game Name</string>
+    <string name="end_game">GAME END</string>
     <string name="title_activity_main">MainActivity</string>
 </resources>

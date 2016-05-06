@@ -1,12 +1,14 @@
 package com.bat.club.combatclub;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
@@ -39,6 +41,9 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
 
     private SessionIDS m_cred;
     private int mHp = 100;
+
+    Handler h;
+    final int delay = 5000; //milliseconds
 
     CameraPosition mCurrentCamera =
             new CameraPosition.Builder().target(new LatLng(32.215112, 34.993070))
@@ -86,9 +91,8 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         // load google map object
         ((MapFragment) getFragmentManager().findFragmentById(R.id.mapView)).getMapAsync(this);
 
-        final Handler h = new Handler();
-        final int delay = 5000; //milliseconds
 
+        h = new Handler();
         h.postDelayed(new Runnable() {
             public void run() {
                 refreshGameStatus();
@@ -294,7 +298,6 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         try {
             Intent intent = getIntent();
             int playerID = intent.getIntExtra(SessionIDS.KEYS[0], -1);
-            Toast.makeText(GameSession.this,""+playerID,Toast.LENGTH_LONG).show();
                 if (playerID==-1) throw new Exception();
             String playerName = intent.getStringExtra(SessionIDS.KEYS[1]);
             int gameID = intent.getIntExtra(SessionIDS.KEYS[2], -1);
@@ -352,8 +355,50 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
     private void refreshGameStatus(){
         updateEnemyMarkers();
         updateTeamMarkers();
+        updateGameStatus();
     }
 
+    private void updateGameStatus() {
+        RequestParams params = new RequestParams();
+        params.add("gameID", m_cred.gameID + "");
+        CombatClubRestClient.post("/GetGameStatus", params, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                try {
+                    String jsonStr = new String(responseBody, "UTF-8");
+                    jsonStr = CombatClubRestClient.interprateResponse(jsonStr);
+                    JSONArray resArr = new JSONArray(jsonStr);
+                    // 0 Gorilla Team
+                    JSONObject gorilObj = resArr.getJSONObject(0);
+                    int gorilCount = gorilObj.getInt("count");
+                    ((TextView) findViewById(R.id.m_gori_tv)).setText(gorilCount + "");
+
+                    // 1 Army Team
+                    JSONObject armyObj = resArr.getJSONObject(1);
+                    int armyCount = armyObj.getInt("count");
+                    ((TextView) findViewById(R.id.m_army_tv)).setText(armyCount + "");
+
+                    if (armyCount == 0) {
+                        unregisterSessionListeners();
+                        EndDialog alert = new EndDialog();
+                        alert.showDialog(GameSession.this, 0);
+                    } else if (gorilCount == 0) {
+                        unregisterSessionListeners();
+                        EndDialog alert = new EndDialog();
+                        alert.showDialog(GameSession.this, 1);
+                    }
+
+                } catch (Exception ex) {
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+            }
+        });
+
+    }
     private void updateEnemyMarkers(){
         RequestParams params = makeBasicRequest();
         CombatClubRestClient.post("/GetTeamEnemyMarkStatus", params, new AsyncHttpResponseHandler() {
@@ -529,6 +574,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
         mLHelper.unRegisterOnNewLocationListener(this);
         mBTHelper.unregisterOnNewBluetoothDataListener(this);
         mComHelper.unRegisterOnBearingListener(this);
+        h.removeCallbacksAndMessages(null);
     }
 
     private void leaveGame(){
@@ -546,6 +592,54 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
             }
         });
 
+    }
+
+    private void closeGame(){
+        RequestParams params = new RequestParams();
+        params.add("gameID", m_cred.gameID + "");
+        CombatClubRestClient.post("/RemoveGame", params, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+            }
+        });
+    }
+    // costume dialog when opening a new game
+    public class EndDialog {
+
+        public void showDialog(final Activity activity, int winnerTeam) {
+            final Dialog dialog = new Dialog(activity);
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            dialog.setCancelable(false);
+            dialog.setContentView(R.layout.gameend_dialog);
+
+            ImageView winnerImg = (ImageView)dialog.findViewById(R.id.winner_img);
+            ImageView loserImg = (ImageView)dialog.findViewById(R.id.loser_img);
+            Button enterButton = (Button) dialog.findViewById(R.id.enterBtn);
+
+            // team 1 is army
+            if (winnerTeam == 1){
+                winnerImg.setImageResource(R.drawable.ic_army);
+                loserImg.setImageResource(R.drawable.ic_gorilla);
+            }
+
+            enterButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dialog.dismiss();
+                    Intent intent = new Intent(getApplicationContext(), GameSelection.class);
+                    startActivity(intent);
+                    finish();
+                }
+            });
+
+            dialog.show();
+
+        }
     }
 
     @Override
