@@ -41,6 +41,7 @@ public class GameSelection extends AppCompatActivity {
     ArrayList<Game> mGameList = new ArrayList<>();
     ListView mGameListView;
     GameArrayAdapter mAdapter;
+    Handler h = new Handler();
 
     SessionIDS m_cred;
 
@@ -74,8 +75,7 @@ public class GameSelection extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
 
-        final Handler h = new Handler();
-        final int delay = 5000; //milliseconds
+        final int delay = 1000; //milliseconds
 
         h.postDelayed(new Runnable() {
             public void run() {
@@ -284,6 +284,12 @@ public class GameSelection extends AppCompatActivity {
 
             return convertView;
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        h.removeCallbacksAndMessages(null);
     }
 
     // polling task

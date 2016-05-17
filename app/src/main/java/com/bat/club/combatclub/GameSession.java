@@ -3,6 +3,7 @@ package com.bat.club.combatclub;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
 import android.location.Location;
 import android.os.Bundle;
@@ -450,7 +451,7 @@ implements OnMapReadyCallback, BluetoothDataListener, BestLocationListener, Bear
                         String percentage = resHealth.getString("Percentage");
                         int teamID = resObj.getInt("id");
                         String name = resObj.getString("name");
-                        addOrAnimateMarker(new MyMarker(teamID, googleMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_teammate))
+                        addOrAnimateMarker(new MyMarker(teamID, googleMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.ic_marker_teammate)))
                                 .title(name)
                                 .snippet(percentage + "%")
                                 .position(tLatLng)
